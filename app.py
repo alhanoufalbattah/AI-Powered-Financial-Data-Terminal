@@ -5,16 +5,16 @@ import urllib3
 import pandas as pd
 from datetime import datetime
 
-# 1. إعدادات الصفحة
-st.set_page_config(page_title="ALHANOUF ALBATTAH | Live Terminal 2026", layout="wide")
+# 1. إعدادات الصفحة (يجب أن يكون أول سطر)
+st.set_page_config(page_title="ALHANOUF ALBATTAH | Financial Terminal", layout="wide")
 
 # تجاوز خطأ شهادة الأمان SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# السنة الحالية
+# الحصول على السنة الحالية
 current_year = datetime.now().year
 
-# --- تنسيق CSS ---
+# --- تنسيق CSS المظهر والحقوق ---
 st.markdown(f"""
     <style>
     .main {{ background-color: #f8f9fa; }}
@@ -47,13 +47,17 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. مفتاح الـ API الخاص بك
-MISTRAL_API_KEY = "NhHxM2nPRC6drt54lSTpySuVJNtylcgh"
+# 2. جلب مفتاح الـ API من الخزنة السرية (Secrets)
+# ملاحظة: يجب إضافته في إعدادات موقع Streamlit Cloud
+try:
+    MISTRAL_API_KEY = st.secrets["MISTRAL_API_KEY"]
+except:
+    st.warning("⚠️ مفتاح الـ API غير مفعّل في الخزنة السرية. يرجى إضافته في إعدادات Streamlit.")
+    MISTRAL_API_KEY = None
 
-# 3. وظائف جلب البيانات (محدثة لجلب أحدث سعر)
+# 3. وظائف جلب البيانات
 def get_stock_data(symbol):
     try:
-        # إضافة اسم مستخدم وهمي لتجنب حظر ياهو فاينانس للطلبات القديمة
         ticker = yf.Ticker(symbol)
         info = ticker.info
         if not info or 'longName' not in info: return None, None
@@ -61,6 +65,9 @@ def get_stock_data(symbol):
     except: return None, None
 
 def ask_ai(prompt):
+    if not MISTRAL_API_KEY:
+        return "عذراً، مفتاح الـ API مفقود."
+    
     url = "https://api.mistral.ai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {MISTRAL_API_KEY}",
@@ -69,7 +76,7 @@ def ask_ai(prompt):
     payload = {
         "model": "mistral-small-latest",
         "messages": [
-            {"role": "system", "content": "أنت خبير مالي. أجب بالعربية."},
+            {"role": "system", "content": "أنت خبير مالي محترف. أجب باللغة العربية."},
             {"role": "user", "content": prompt}
         ]
     }
@@ -81,20 +88,19 @@ def ask_ai(prompt):
 # --- الشريط الجانبي (Sidebar) ---
 with st.sidebar:
     st.markdown("<div class='my-name-sidebar'>ALHANOUF ALBATTAH</div>", unsafe_allow_html=True)
-    st.title("🔍 نظام التحليل اللحظي")
+    st.title("🔍 البحث والتحليل")
     symbol = st.text_input("أدخل رمز السهم:", "7010.SR")
     st.markdown("---")
-    st.write("📅 **توقيت النظام الحالي:**")
-    st.success(datetime.now().strftime("%Y-%m-%d %H:%M"))
+    st.write("📅 **توقيت النظام:**")
+    st.info(datetime.now().strftime("%Y-%m-%d"))
 
 # جلب البيانات
 info, ticker_obj = get_stock_data(symbol)
 
 if info:
-    st.markdown(f"<div class='main-header'>🏢 {info['longName']}</div>", unsafe_allow_html=True)
+    st.markdown(f" <div class='main-header'>🏢 {info['longName']}</div>", unsafe_allow_html=True)
     
     col1, col2, col3, col4 = st.columns(4)
-    # استخدام 'currentPrice' أو 'regularMarketPrice' لضمان أحدث سعر في 2026
     price = info.get('currentPrice') or info.get('regularMarketPrice', 0)
     prev = info.get('previousClose', 1)
     diff = ((price - prev) / prev) * 100
@@ -107,34 +113,31 @@ if info:
 
     st.write("---")
 
-    t1, t2 = st.tabs(["📈 الرسم البياني المباشر", "🤖 استشارة الذكاء الاصطناعي"])
+    t1, t2 = st.tabs(["📈 الرسم البياني", "🤖 استشارة الذكاء الاصطناعي"])
     
     with t1:
-        st.subheader(f"أداء السهم وصولاً إلى {datetime.now().strftime('%B %Y')}")
-        # جلب البيانات لآخر 6 أشهر من تاريخ اليوم الفعلي
+        st.subheader("تحركات السهم - بيانات 2026")
         hist = ticker_obj.history(period="6mo")
         if not hist.empty:
             st.area_chart(hist['Close'])
             st.caption(f"آخر تحديث للبيانات: {hist.index[-1].strftime('%Y-%m-%d')}")
-        else:
-            st.error("تعذر جلب البيانات اللحظية. تأكد من اتصال الإنترنت وتحديث مكتبة yfinance.")
 
     with t2:
-        st.subheader("تحليل المستشار المالي لعام 2026")
-        user_q = st.text_input("اكتب سؤالك الاستثماري:", "كيف ترى أداء السهم في منتصف عام 2026؟")
+        st.subheader("اسأل مستشارك المالي الذكي")
+        user_q = st.text_input("اكتب سؤالك هنا:", "ما هي توقعاتك للسهم في 2026؟")
         if st.button("بدء التحليل الفوري"):
-            with st.spinner("جاري تحليل البيانات الحالية..."):
-                full_prompt = f"حلل سهم {info['longName']} سعره {price}. نحن الآن في عام 2026. السؤال: {user_q}"
+            with st.spinner("جاري قراءة البيانات..."):
+                full_prompt = f"حلل سهم {info['longName']} سعره {price}. السؤال: {user_q}"
                 answer = ask_ai(full_prompt)
                 st.info(answer)
 
 else:
-    st.error("❌ رمز السهم غير صحيح أو البيانات غير متوفرة حالياً.")
+    st.error("❌ رمز السهم غير صحيح أو البيانات غير متوفرة.")
 
 # --- تذييل الصفحة ---
 st.markdown(f"""
     <div class="footer">
         <p>Developed & Designed by: ALHANOUF ALBATTAH © {current_year}</p>
-        <p style='font-size: 0.8em;'>Real-Time Data Terminal | 2026 Edition</p>
+        <p style='font-size: 0.8em;'>Financial Data Terminal | v3.0 Secured</p>
     </div>
     """, unsafe_allow_html=True)
