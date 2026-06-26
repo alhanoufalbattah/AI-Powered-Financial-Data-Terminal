@@ -11,10 +11,10 @@ st.set_page_config(page_title="ALHANOUF ALBATTAH | Financial Terminal", layout="
 # تجاوز خطأ شهادة الأمان SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# --- كود التصميم المخصص (خلفية بيضاء، مربعات رمادية، كتابة سوداء) ---
+# --- كود التصميم المطور (إجبار المربعات على اللون الرمادي والنص على الأسود) ---
 st.markdown("""
     <style>
-    /* 1. جعل الصفحة كاملة باللون الأبيض */
+    /* 1. جعل الصفحة كاملة بيضاء */
     .stApp {
         background-color: #FFFFFF !important;
     }
@@ -24,44 +24,45 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* 3. تنسيق صناديق الأرقام (Metrics) لتكون رمادية فاتحة */
+    /* 3. تنسيق بطاقات الأرقام (Metrics) لتكون رمادية فاتحة */
     div[data-testid="stMetric"] {
-        background-color: #f2f2f2 !important; /* رمادي فاتح */
+        background-color: #f0f2f6 !important;
         border: 1px solid #e0e0e0 !important;
         border-radius: 12px !important;
         padding: 20px !important;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.05) !important;
     }
-
-    /* 4. إجبار قيمة الرقم المالي على اللون الأسود */
     div[data-testid="stMetricValue"] > div {
         color: #000000 !important;
         font-weight: 800 !important;
     }
 
-    /* 5. تنسيق صناديق الإدخال (Input Boxes) */
+    /* 4. حل مشكلة المربع الأسود (تنسيق صندوق الكتابة بدقة) */
+    div[data-baseweb="input"] {
+        background-color: #f0f2f6 !important; /* رمادي فاتح */
+        border: 1px solid #000000 !important; /* إطار أسود خفيف */
+        border-radius: 10px !important;
+    }
+    
     input {
-        color: #000000 !important;
-        background-color: #ffffff !important;
-        border: 1px solid #000000 !important;
+        color: #000000 !important; /* لون الكتابة أسود */
+        background-color: transparent !important;
     }
 
-    /* 6. تنسيق الأزرار (Buttons) لتبدو احترافية */
+    /* 5. تنسيق الزر (Button) */
     .stButton>button {
         background-color: #000000 !important; /* زر أسود */
-        color: #ffffff !important; /* كتابة بيضاء داخل الزر للوضوح */
-        border-radius: 8px !important;
+        color: #ffffff !important; /* كتابة بيضاء */
+        border-radius: 10px !important;
         width: 100% !important;
         font-weight: bold !important;
+        border: none !important;
+        height: 3em !important;
     }
 
-    /* 7. تنسيق السايدبار (Sidebar) */
+    /* 6. السايدبار */
     section[data-testid="stSidebar"] {
-        background-color: #f9f9f9 !important;
-        border-right: 1px solid #eeeeee !important;
+        background-color: #f8f9fa !important;
     }
-
-    /* اسمك في السايدبار */
     .my-name-sidebar {
         font-size: 20px;
         font-weight: bold;
@@ -69,23 +70,23 @@ st.markdown("""
         text-align: center;
         padding: 10px;
         border: 2px solid #000000;
-        border-radius: 5px;
+        border-radius: 8px;
         margin-bottom: 20px;
     }
 
-    /* صندوق رد الذكاء الاصطناعي (رمادي فاتح مع نص أسود) */
-    .ai-response-box {
-        background-color: #f2f2f2 !important;
+    /* 7. صندوق رد الذكاء الاصطناعي */
+    .ai-box {
+        background-color: #f0f2f6 !important;
         color: #000000 !important;
         padding: 20px;
-        border-radius: 10px;
-        border-right: 5px solid #000000;
-        margin-top: 10px;
+        border-radius: 12px;
+        border-left: 6px solid #000000;
+        margin-top: 15px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. جلب المفتاح السري
+# 2. جلب المفتاح السري من Secrets
 try:
     MISTRAL_API_KEY = st.secrets["MISTRAL_API_KEY"]
 except:
@@ -101,7 +102,7 @@ def get_stock_data(symbol):
     except: return None, None
 
 def ask_ai(prompt_text):
-    if not MISTRAL_API_KEY: return "⚠️ مفتاح الـ API مفقود في إعدادات Secrets."
+    if not MISTRAL_API_KEY: return "⚠️ عذراً، مفتاح الـ API غير مفعّل في الإعدادات."
     url = "https://api.mistral.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}", "Content-Type": "application/json"}
     payload = {
@@ -111,49 +112,47 @@ def ask_ai(prompt_text):
     try:
         r = requests.post(url, json=payload, headers=headers, verify=False)
         return r.json()['choices'][0]['message']['content']
-    except: return "المستشار مشغول حالياً."
+    except: return "المستشار مشغول حالياً، جرب لاحقاً."
 
-# --- واجهة المستخدم (الشريط الجانبي) ---
+# --- واجهة المستخدم ---
 with st.sidebar:
     st.markdown("<div class='my-name-sidebar'>ALHANOUF ALBATTAH</div>", unsafe_allow_html=True)
-    symbol = st.text_input("ادخل رمز السهم:", "7010.SR")
-    st.write(f"📅 نظام 2026")
+    symbol = st.text_input("رمز السهم:", "7010.SR")
+    st.write(f"📅 تحديثات 2026")
 
-# جلب البيانات وعرضها
 info, ticker_obj = get_stock_data(symbol)
 
 if info:
     st.markdown(f"<h1>🏢 {info['longName']}</h1>", unsafe_allow_html=True)
     
-    # صف المؤشرات المالية (صناديق رمادية)
-    col1, col2 = st.columns(2)
+    # بطاقات البيانات (رمادي فاتح)
+    c1, c2 = st.columns(2)
     price = info.get('currentPrice') or info.get('regularMarketPrice', 0)
     
-    with col1:
-        st.metric("السعر الحالي", f"{price} SAR")
-    with col2:
-        st.metric("مكرر الربحية P/E", info.get('trailingPE', 'N/A'))
+    with c1: st.metric("السعر الحالي", f"{price} SAR")
+    with c2: st.metric("مكرر الربحية P/E", info.get('trailingPE', 'N/A'))
 
     st.write("---")
 
     # التبويبات
-    tab1, tab2 = st.tabs(["📈 الرسم البياني", "🤖 استشارة المستشار"])
+    t1, t2 = st.tabs(["📊 الرسم البياني", "🤖 استشارة المستشار"])
 
-    with tab1:
+    with t1:
         hist = ticker_obj.history(period="6mo")
         st.area_chart(hist['Close'])
 
-    with tab2:
+    with t2:
         st.markdown("### اسأل المستشار الذكي")
-        user_q = st.text_input("ما هو سؤالك المالي؟", key="q_input")
-        if st.button("بدء التحليل الفوري"):
-            with st.spinner("جاري التفكير..."):
-                answer = ask_ai(f"حلل سهم {info['longName']} سعره {price}. السؤال: {user_q}")
-                # عرض الإجابة في صندوق رمادي فاتح
-                st.markdown(f"<div class='ai-response-box'>{answer}</div>", unsafe_allow_html=True)
-
+        # الصندوق الذي كان يظهر باللون الأسود:
+        user_q = st.text_input("ما هو سؤالك حول هذا السهم؟", value="هل تنصحني بالاستثمار في هذا السهم؟", key="input_field")
+        
+        if st.button("تحليل البيانات فوراً"):
+            with st.spinner("جاري التحليل..."):
+                res = ask_ai(f"حلل سهم {info['longName']} سعره {price}. السؤال: {user_q}")
+                # عرض الرد في صندوق رمادي منسق
+                st.markdown(f"<div class='ai-box'>{res}</div>", unsafe_allow_html=True)
 else:
-    st.error("الرمز غير صحيح، حاول مرة أخرى.")
+    st.error("الرمز غير موجود.")
 
 # --- التذييل ---
-st.markdown("<div style='text-align:center; padding:20px; font-weight:bold;'>Developed by: ALHANOUF ALBATTAH © 2026</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align:center; padding:30px; font-weight:bold; color:black;'>Developed by: ALHANOUF ALBATTAH © 2026</div>", unsafe_allow_html=True)
