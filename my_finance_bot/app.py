@@ -5,92 +5,81 @@ import urllib3
 import pandas as pd
 from datetime import datetime
 
-# 1. إعدادات الصفحة (يجب أن يكون أول سطر برمجي)
-st.set_page_config(page_title="ALHANOUF ALBATTAH | Financial Terminal", layout="wide")
+# 1. إعدادات الصفحة
+st.set_page_config(page_title="ALHANOUF ALBATTAH | Terminal", layout="wide")
 
-# تجاوز خطأ شهادة الأمان SSL (لضمان عمل البيانات في كل الأوقات)
+# تجاوز خطأ شهادة الأمان SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# --- تنسيق CSS احترافي (إجبار الألوان على الأسود والكحلي ومنع الأبيض) ---
+# --- كود التصميم المطور (حل مشكلة السواد وعدم الوضوح) ---
 st.markdown("""
     <style>
-    /* تغيير خلفية التطبيق للون فاتح جداً */
+    /* إجبار خلفية الصفحة على اللون الأبيض */
     .stApp {
-        background-color: #ffffff !important;
+        background-color: #FFFFFF !important;
     }
 
-    /* إجبار كل العناوين والنصوص على اللون الأسود */
-    h1, h2, h3, h4, h5, h6, p, span, label, div, .stMarkdown {
-        color: #000000 !important;
+    /* تنسيق النصوص العامة */
+    h1, h2, h3, p, span, label, .stMarkdown {
+        color: #1e3a8a !important; /* كحلي غامق */
     }
 
-    /* تنسيق بطاقات الأرقام (Metrics) */
+    /* --- تحسين شكل صناديق الكتابة (اللي طالعة سوداء بالصورة) --- */
+    input {
+        color: #000000 !important; /* الكتابة بالأسود */
+        background-color: #f8fafc !important; /* خلفية رمادية فاتحة جداً */
+        border: 2px solid #cbd5e1 !important; /* إطار واضح */
+    }
+
+    /* --- تحسين شكل الزر (عشان ما يطلع أسود وباهت) --- */
+    .stButton>button {
+        background-color: #1e3a8a !important; /* لون كحلي ملكي */
+        color: #FFFFFF !important; /* كتابة بيضاء واضحة جداً */
+        font-weight: bold !important;
+        border-radius: 10px !important;
+        border: none !important;
+        padding: 10px 20px !important;
+        font-size: 18px !important;
+    }
+
+    /* تنسيق بطاقات الأرقام الملونة */
     div[data-testid="stMetric"] {
-        background-color: #f1f5f9 !important; /* رمادي فاتح للخلفية */
-        border: 2px solid #1e3a8a !important; /* إطار كحلي واضح */
+        background-color: #ffffff !important;
+        border: 2px solid #1e3a8a !important;
+        border-radius: 15px !important;
         padding: 15px !important;
-        border-radius: 12px !important;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1) !important;
+        box-shadow: 2px 4px 10px rgba(0,0,0,0.1) !important;
     }
 
-    /* تلوين الرقم المالي بالكحلي الغامق */
     div[data-testid="stMetricValue"] > div {
         color: #1e3a8a !important;
         font-weight: 800 !important;
     }
 
-    /* تلوين اسم المؤشر بالأسود */
-    div[data-testid="stMetricLabel"] > div {
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-
-    /* تنسيق التبويبات (Tabs) لضمان وضوح النص */
-    button[data-baseweb="tab"] {
-        color: #000000 !important;
-    }
-    button[data-baseweb="tab"][aria-selected="true"] {
-        color: #1e3a8a !important;
-        border-bottom-color: #1e3a8a !important;
-    }
-
-    /* تنسيق الشريط الجانبي (Sidebar) */
+    /* تنسيق السايدبار (الجانبي) */
     section[data-testid="stSidebar"] {
-        background-color: #f8fafc !important;
-        border-right: 1px solid #e2e8f0 !important;
+        background-color: #f1f5f9 !important;
     }
-
-    /* تصميم اسمك في السايدبار */
+    
     .my-name-sidebar {
-        font-size: 20px;
-        font-weight: 900;
-        color: #ffffff !important; /* النص هنا أبيض للتباين مع الخلفية الكحلية */
         background-color: #1e3a8a;
-        text-align: center;
+        color: white !important;
         padding: 15px;
+        text-align: center;
+        font-weight: bold;
         border-radius: 10px;
         margin-bottom: 20px;
-    }
-
-    /* تذييل الصفحة */
-    .footer {
-        text-align: center;
-        padding: 20px;
-        font-weight: bold;
-        color: #000000 !important;
-        border-top: 2px solid #1e3a8a;
-        margin-top: 50px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. جلب مفتاح الـ API من Secrets (للأمان)
+# 2. جلب المفتاح
 try:
     MISTRAL_API_KEY = st.secrets["MISTRAL_API_KEY"]
 except:
     MISTRAL_API_KEY = None
 
-# 3. وظائف جلب البيانات من ياهو فاينانس
+# 3. وظائف جلب البيانات
 def get_stock_data(symbol):
     try:
         ticker = yf.Ticker(symbol)
@@ -99,88 +88,52 @@ def get_stock_data(symbol):
         return info, ticker
     except: return None, None
 
-# 4. وظيفة الاتصال بذكاء Mistral AI
 def ask_ai(prompt_text):
-    if not MISTRAL_API_KEY: return "⚠️ يرجى إضافة MISTRAL_API_KEY في إعدادات Secrets."
+    if not MISTRAL_API_KEY: return "⚠️ مفتاح الـ API مفقود."
     url = "https://api.mistral.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "mistral-small-latest",
-        "messages": [
-            {"role": "system", "content": "أنت خبير مالي سعودي محترف. أجب باللغة العربية."},
-            {"role": "user", "content": prompt_text}
-        ]
+        "messages": [{"role": "system", "content": "أنت خبير مالي محترف. أجب باللغة العربية."}, {"role": "user", "content": prompt_text}]
     }
     try:
         r = requests.post(url, json=payload, headers=headers, verify=False)
         return r.json()['choices'][0]['message']['content']
-    except: return "المستشار مشغول حالياً، يرجى المحاولة لاحقاً."
+    except: return "المستشار مشغول حالياً."
 
-# --- واجهة المستخدم (Sidebar) ---
+# --- واجهة المستخدم ---
 with st.sidebar:
     st.markdown("<div class='my-name-sidebar'>ALHANOUF ALBATTAH</div>", unsafe_allow_html=True)
-    st.markdown("### 🔍 محرك البحث المالي")
-    symbol = st.text_input("أدخل رمز السهم (مثلاً 7010.SR):", "7010.SR")
-    st.write("---")
-    st.write(f"📅 **تاريخ النظام:** {datetime.now().strftime('%Y-%m-%d')}")
+    symbol = st.text_input("رمز السهم (مثلاً 7010.SR):", "7010.SR")
+    st.write(f"📅 2026 Terminal")
 
-# جلب البيانات
 info, ticker_obj = get_stock_data(symbol)
 
 if info:
-    # اسم الشركة
-    st.markdown(f"<h1 style='text-align:right; color:#1e3a8a;'>🏢 {info['longName']}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h2>🏢 {info['longName']}</h2>", unsafe_allow_html=True)
     
-    # صف المؤشرات (مقسمة لـ 2x2 لتناسب الجوال)
-    c1, c2 = st.columns(2)
-    c3, c4 = st.columns(2)
-    
+    col1, col2 = st.columns(2)
     price = info.get('currentPrice') or info.get('regularMarketPrice', 0)
-    prev = info.get('previousClose', 1)
-    diff = ((price - prev) / prev) * 100
     
-    with c1:
-        st.metric("السعر الحالي (2026)", f"{price} SAR", f"{diff:.2f}%")
-    with c2:
+    with col1:
+        st.metric("السعر الحالي", f"{price} SAR")
+    with col2:
         st.metric("مكرر الربحية P/E", info.get('trailingPE', 'N/A'))
-    with c3:
-        st.metric("أعلى سعر/سنة", info.get('fiftyTwoWeekHigh', 'N/A'))
-    with c4:
-        div = info.get('dividendYield', 0)
-        st.metric("توزيعات الأرباح", f"{div*100:.2f}%" if div else "0%")
 
     st.write("---")
-
-    # التبويبات للرسم البياني والذكاء الاصطناعي
-    tab_chart, tab_ai = st.tabs(["📈 تحركات السهم المباشرة", "🤖 استشارة المستشار الذكي"])
     
-    with tab_chart:
-        st.subheader("أداء السهم في آخر 6 أشهر")
+    tab1, tab2 = st.tabs(["📊 المخطط", "🤖 التحليل"])
+    
+    with tab1:
         hist = ticker_obj.history(period="6mo")
-        if not hist.empty:
-            st.area_chart(hist['Close'])
-            st.caption(f"آخر تحديث للبيانات: {hist.index[-1].strftime('%Y-%m-%d')}")
+        st.area_chart(hist['Close'])
 
-    with tab_ai:
-        st.subheader("التحليل المالي المدعوم بالذكاء الاصطناعي")
-        user_q = st.text_input("اسأل المستشار عن هذا السهم:", "هل السهم فرصة جيدة للاستثمار في 2026؟")
+    with tab2:
+        st.write("### اسأل المستشار عن هذا السهم")
+        user_q = st.text_input("اكتب سؤالك هنا:", key="user_input")
         if st.button("تحليل البيانات فوراً"):
-            with st.spinner("جاري قراءة مؤشرات السوق..."):
-                answer = ask_ai(f"حلل شركة {info['longName']} سعره {price}. السؤال: {user_q}")
-                # عرض الإجابة في صندوق ملون واضح
-                st.markdown(f"""
-                <div style='background-color: #e2e8f0; padding: 20px; border-radius: 10px; border-left: 5px solid #1e3a8a; color: #000000;'>
-                {answer}
-                </div>
-                """, unsafe_allow_html=True)
-
+            with st.spinner("جاري التحليل..."):
+                answer = ask_ai(f"حلل سهم {info['longName']} سعره {price}. السؤال: {user_q}")
+                st.markdown(f"<div style='color:black; background-color:#f1f5f9; padding:15px; border-radius:10px; border-left: 5px solid #1e3a8a;'>{answer}</div>", unsafe_allow_html=True)
 else:
-    st.error("❌ رمز السهم غير صحيح أو البيانات غير متوفرة حالياً.")
-
-# --- تذييل الصفحة (الحقوق) ---
-st.markdown(f"""
-    <div class="footer">
-        <p>Developed & Designed by: ALHANOUF ALBATTAH © 2026</p>
-        <p style='font-size: 0.8em;'>Real-Time Financial Intelligence Terminal</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.error("رمز السهم غير صحيح.")
